@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arcana Jam – Demo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap');
+
+  :root {
+    --bg:        #0d0b1a;
+    --surface:   #161228;
+    --tray-bg:   #1e1836;
+    --tray-rim:  #3a2e6e;
+    --accent:    #b87cf5;
+    --gold:      #f0c060;
+    --text:      #e8dff8;
+    --dim:       #7a6ea8;
+    --green:     #5af0a0;
+    --red:       #f55a5a;
+    --t1glow:    rgba(90,240,160,0.25);
+    --t2glow:    rgba(120,160,255,0.35);
+    --t3glow:    rgba(255,200,80,0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Crimson Pro', Georgia, serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* ─── Stars background ─── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,.4) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 55% 15%, rgba(255,255,255,.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 75% 45%, rgba(255,255,255,.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 20% 90%, rgba(255,255,255,.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 65% 60%, rgba(255,255,255,.4) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ─── Header ─── */
+  header {
+    position: relative; z-index: 1;
+    text-align: center;
+    padding: 18px 20px 10px;
+    width: 100%;
+    background: linear-gradient(180deg, #1a1030 0%, transparent 100%);
+    border-bottom: 1px solid #2e2260;
+  }
+
+  header h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: 700;
+    letter-spacing: .12em;
+    background: linear-gradient(135deg, #d4a0ff 0%, #f0c060 60%, #ff9a6c 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+  }
+
+  header p { font-size: .85rem; color: var(--dim); margin-top: 3px; }
+
+  /* ─── Score bar ─── */
+  #scorebar {
+    position: relative; z-index: 1;
+    display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap;
+    padding: 10px 20px;
+    background: #13102200;
+    width: 100%;
+  }
+
+  .score-box {
+    background: var(--surface);
+    border: 1px solid #2e2260;
+    border-radius: 8px;
+    padding: 6px 14px;
+    text-align: center;
+    min-width: 90px;
+  }
+  .score-box .label { font-size: .7rem; color: var(--dim); letter-spacing: .08em; text-transform: uppercase; }
+  .score-box .val   { font-family: 'Cinzel', serif; font-size: 1.15rem; color: var(--gold); }
+
+  /* ─── Help text ─── */
+  #help {
+    position: relative; z-index: 1;
+    font-size: .8rem; color: var(--dim);
+    text-align: center;
+    padding: 0 16px 6px;
+    line-height: 1.5;
+  }
+  #help span { color: var(--accent); }
+
+  /* ─── Selected item banner ─── */
+  #selected-banner {
+    position: relative; z-index: 1;
+    height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .88rem;
+    color: var(--accent);
+    letter-spacing: .04em;
+  }
+  #selected-banner.has-item { color: var(--gold); }
+
+  /* ─── Board ─── */
+  #board {
+    position: relative; z-index: 1;
+    display: flex; flex-wrap: wrap;
+    justify-content: center;
+    gap: 12px;
+    padding: 0 12px 12px;
+    width: 100%;
+    max-width: 700px;
+  }
+
+  /* ─── Tray ─── */
+  .tray {
+    background: var(--tray-bg);
+    border: 2px solid var(--tray-rim);
+    border-radius: 14px;
+    padding: 10px 8px;
+    width: 140px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: border-color .18s, box-shadow .18s;
+    cursor: pointer;
+    position: relative;
+  }
+  .tray:hover { border-color: var(--accent); }
+  .tray.full  { border-color: var(--red); box-shadow: 0 0 12px rgba(245,90,90,.3); }
+  .tray.selected-target {
+    border-color: var(--gold);
+    box-shadow: 0 0 16px rgba(240,192,96,.4);
+  }
+
+  .tray-label {
+    font-size: .65rem; color: var(--dim); text-align: center;
+    letter-spacing: .08em; text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  /* ─── Layer row inside a tray ─── */
+  .layer {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+    min-height: 38px;
+  }
+  .layer.inner-layer .item { opacity: .45; pointer-events: none; }
+
+  /* ─── Item chip ─── */
+  .item {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform .12s, box-shadow .15s, border-color .15s;
+    position: relative;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .item:active { transform: scale(.92); }
+
+  /* Tier colours */
+  .tier-1 { background: #1f2d1f; border-color: #3a5a3a; box-shadow: 0 0 6px var(--t1glow); }
+  .tier-2 { background: #1c1f3a; border-color: #4a5acf; box-shadow: 0 0 8px var(--t2glow); }
+  .tier-3 { background: #2a2010; border-color: #c8a030; box-shadow: 0 0 12px var(--t3glow); animation: t3pulse 1.2s infinite alternate; }
+
+  @keyframes t3pulse { from { box-shadow: 0 0 10px var(--t3glow); } to { box-shadow: 0 0 22px rgba(255,210,80,.7); } }
+
+  .item.selected {
+    border-color: var(--gold) !important;
+    transform: scale(1.18) translateY(-4px);
+    box-shadow: 0 0 18px rgba(240,192,96,.7) !important;
+    z-index: 10;
+  }
+
+  /* ─── Spawn & controls ─── */
+  #controls {
+    position: relative; z-index: 1;
+    display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    padding: 6px 16px 14px;
+    width: 100%; max-width: 700px;
+  }
+
+  button {
+    font-family: 'Cinzel', serif;
+    font-size: .8rem;
+    letter-spacing: .08em;
+    padding: 9px 20px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+  }
+  button:active { transform: scale(.96); }
+  button:disabled { opacity: .35; cursor: default; }
+
+  #btn-spawn {
+    background: linear-gradient(135deg, #7c40e0, #b060f0);
+    color: #fff;
+    min-width: 130px;
+  }
+  #btn-spawn:hover:not(:disabled) { opacity: .88; }
+
+  #btn-restart {
+    background: var(--surface);
+    color: var(--dim);
+    border: 1px solid #2e2260;
+  }
+  #btn-restart:hover { color: var(--text); border-color: var(--accent); }
+
+  /* ─── Log ─── */
+  #log {
+    position: relative; z-index: 1;
+    font-size: .78rem; color: var(--dim);
+    min-height: 22px; text-align: center;
+    padding: 0 16px 6px;
+    line-height: 1.6;
+  }
+  #log .entry { animation: fadeIn .3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; } }
+
+  /* ─── Merge explosion overlay ─── */
+  .burst {
+    position: fixed;
+    pointer-events: none;
+    z-index: 999;
+    font-size: 2.2rem;
+    animation: burst .6s forwards;
+  }
+  @keyframes burst {
+    0%   { opacity: 1; transform: scale(.5); }
+    60%  { opacity: 1; transform: scale(1.6); }
+    100% { opacity: 0; transform: scale(2.2) translateY(-30px); }
+  }
+
+  /* ─── Game Over overlay ─── */
+  #gameover {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(5,3,15,.88);
+    z-index: 200;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+    padding: 30px;
+  }
+  #gameover.show { display: flex; }
+  #gameover h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 2rem;
+    background: linear-gradient(135deg, #f0c060, #f55a5a);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  #gameover p { color: var(--dim); font-size: 1rem; }
+  #gameover .score { font-family: 'Cinzel', serif; font-size: 1.8rem; color: var(--gold); }
+  #gameover button { font-size: .9rem; padding: 12px 28px; background: linear-gradient(135deg,#7c40e0,#b060f0); color:#fff; }
+
+  /* ─── Recipe book sidebar (floating) ─── */
+  #recipe-btn {
+    position: fixed; bottom: 20px; right: 16px; z-index: 50;
+    background: var(--surface);
+    border: 1px solid var(--tray-rim);
+    border-radius: 50%;
+    width: 48px; height: 48px;
+    font-size: 1.4rem;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 14px rgba(90,60,200,.4);
+    transition: transform .15s;
+  }
+  #recipe-btn:hover { transform: scale(1.1); }
+
+  #recipe-panel {
+    display: none;
+    position: fixed; bottom: 76px; right: 16px; z-index: 50;
+    background: #17112e;
+    border: 1px solid #3a2e6e;
+    border-radius: 12px;
+    padding: 14px;
+    width: 220px;
+    max-height: 340px;
+    overflow-y: auto;
+    font-size: .82rem;
+    box-shadow: 0 8px 32px rgba(0,0,0,.7);
+  }
+  #recipe-panel.open { display: block; }
+  #recipe-panel h3 { font-family: 'Cinzel', serif; font-size: .9rem; color: var(--gold); margin-bottom: 8px; }
+  .recipe-entry { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .recipe-entry .icon { font-size: 1.1rem; }
+  .recipe-entry .info { color: var(--dim); }
+  .recipe-entry .info b { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚗️ ARCANA JAM</h1>
+  <p>Alchemist Sort Puzzle — Demo</p>
+</header>
+
+<div id="scorebar">
+  <div class="score-box"><div class="label">Điểm</div><div class="val" id="score-val">0</div></div>
+  <div class="score-box"><div class="label">Cao nhất</div><div class="val" id="hi-val">0</div></div>
+  <div class="score-box"><div class="label">Lượt Spawn</div><div class="val" id="spawn-val">∞</div></div>
+</div>
+
+<div id="help">
+  <span>Tap một vật phẩm</span> để chọn → <span>Tap khay khác</span> để di chuyển nó vào đó.<br>
+  3 vật phẩm cùng loại trong 1 khay → <span>Tự động gộp!</span>
+</div>
+
+<div id="selected-banner">— chưa chọn —</div>
+
+<div id="board"></div>
+
+<div id="controls">
+  <button id="btn-spawn">✨ Tạo Đồ (Spawn)</button>
+  <button id="btn-restart">↺ Ván mới</button>
+</div>
+
+<div id="log"></div>
+
+<!-- Game Over -->
+<div id="gameover">
+  <h2>🧪 Tiệm Quá Tải!</h2>
+  <p>Không còn chỗ trống để Spawn</p>
+  <div class="score" id="go-score">0 điểm</div>
+  <button onclick="restartGame()">Chơi lại</button>
+</div>
+
+<!-- Recipe panel -->
+<div id="recipe-btn" title="Sách Công thức" onclick="toggleRecipe()">📖</div>
+<div id="recipe-panel">
+  <h3>📖 Sách Công thức</h3>
+  <div id="recipe-list"><em style="color:var(--dim)">Chưa có công thức nào…</em></div>
+</div>
+
+<script>
+// ════════════════════════════════════════
+//   DATA
+// ════════════════════════════════════════
+const ITEMS = [
+  // [name, tier1emoji, tier2emoji, tier3emoji, t1name, t2name, t3name]
+  ['herb',    '🌿','🧪','✨', 'Thảo Mộc','Chiết Xuất Xanh','Tinh Chất Thuần'],
+  ['shroom',  '🍄','💜','🌌', 'Nấm Bào Tử','Nấm Ma Thuật','Tinh Bào Cổ Đại'],
+  ['crystal', '💎','🔷','💠', 'Pha Lê Thô','Pha Lê Tinh Chế','Pha Lê Huyền Bí'],
+  ['bone',    '🦴','🕯️','💀', 'Xương Khô','Sáp Ma Thuật','Tinh Thể Tử Linh'],
+  ['flower',  '🌸','🌺','🌹', 'Hoa Dại','Hoa Thuần Hóa','Hoa Bất Tử'],
+];
+
+const TIER_PTS = [10, 30, 50];
+const SPECIAL_EFFECTS = [
+  '✨ Tinh chất bay ra — xóa sạch 1 khay ngẫu nhiên!',
+  '💥 Vụ nổ ma thuật — hoán vị lớp ngoài các khay!',
+  '🌀 Lốc xoáy — thu nhỏ và xóa tất cả item cùng loại!',
+  '⚡ Sét đánh — cộng điểm bonus +100!',
+];
+
+// ════════════════════════════════════════
+//   STATE
+// ════════════════════════════════════════
+const NUM_TRAYS  = 7;
+const MAX_LAYERS = 4;   // số lớp tối đa mỗi khay
+const LAYER_CAP  = 3;   // vật phẩm tối đa mỗi lớp
+const SPAWN_N    = 3;   // spawn bao nhiêu item mỗi lần
+
+let trays   = [];   // trays[t] = array of layers, layers[l] = array of items {type,tier}
+let score   = 0;
+let hiScore = 0;
+let selected = null;  // { trayIdx, layerIdx, itemIdx }
+let unlockedRecipes = new Set();
+let gameOver = false;
+
+// ════════════════════════════════════════
+//   INIT
+// ════════════════════════════════════════
+function newItem(type, tier=1) { return { type, tier }; }
+
+function initGame() {
+  gameOver = false;
+  score = 0;
+  selected = null;
+  trays = Array.from({length: NUM_TRAYS}, () => []);
+
+  // Seed items across trays — dùng đủ loại để bản demo dễ thấy
+  const types = ITEMS.map(r => r[0]);
+  const seed = [
+    ['herb',1],['herb',1],['herb',1],
+    ['shroom',1],['shroom',1],['shroom',1],
+    ['crystal',1],['crystal',1],
+    ['bone',1],['bone',1],
+    ['flower',1],['flower',1],
+    ['herb',2],['shroom',2],['crystal',2],
+  ];
+  seed.forEach(([type, tier]) => {
+    // Tìm khay còn chỗ
+    const avail = trays.map((_,i)=>i).filter(i=>freeSlots(trays[i])>0);
+    if (!avail.length) return;
+    const t = avail[Math.floor(Math.random()*avail.length)];
+    pushItemToTray(t, newItem(type, tier));
+  });
+
+  renderAll();
+  document.getElementById('gameover').classList.remove('show');
+  logMsg('Chào mừng đến Tiệm Giả Kim! Tap vật phẩm để chọn, rồi tap khay khác để di chuyển.');
+}
+
+// ════════════════════════════════════════
+//   TRAY HELPERS
+// ════════════════════════════════════════
+function outerLayer(tray) {
+  return tray.length > 0 ? tray[tray.length - 1] : null;
+}
+
+function totalItems(tray) {
+  return tray.reduce((s, layer) => s + layer.length, 0);
+}
+
+function totalSlots(tray) {
+  return MAX_LAYERS * LAYER_CAP;
+}
+
+function freeSlots(tray) {
+  return totalSlots(tray) - totalItems(tray);
+}
+
+function pushItemToTray(trayIdx, item) {
+  const tray = trays[trayIdx];
+  const ol = outerLayer(tray);
+  if (!ol || ol.length >= LAYER_CAP) {
+    // start new layer
+    if (tray.length >= MAX_LAYERS) return false; // full
+    tray.push([item]);
+  } else {
+    ol.push(item);
+  }
+  return true;
+}
+
+function totalFreeSlots() {
+  return trays.reduce((s, t) => s + freeSlots(t), 0);
+}
+
+// ════════════════════════════════════════
+//   SELECTION & MOVEMENT
+// ════════════════════════════════════════
+function selectItem(trayIdx, layerIdx, itemIdx) {
+  // Can only pick from outer layer
+  const tray = trays[trayIdx];
+  if (layerIdx !== tray.length - 1) {
+    logMsg('⚠️ Chỉ lấy được vật phẩm ở lớp ngoài cùng!');
+    return;
+  }
+  if (selected) {
+    // deselect if same item
+    if (selected.trayIdx===trayIdx && selected.layerIdx===layerIdx && selected.itemIdx===itemIdx) {
+      selected = null;
+    } else {
+      // move selected item to this tray (same tray → cancel)
+      if (selected.trayIdx === trayIdx) { selected = null; renderAll(); return; }
+      moveItem(trayIdx);
+      return;
+    }
+  } else {
+    selected = { trayIdx, layerIdx, itemIdx };
+  }
+  renderAll();
+}
+
+function clickTray(trayIdx) {
+  if (!selected) return;
+  if (selected.trayIdx === trayIdx) {
+    selected = null;
+    renderAll();
+    return;
+  }
+  moveItem(trayIdx);
+}
+
+function moveItem(destTrayIdx) {
+  if (!selected) return;
+  const { trayIdx: srcIdx, layerIdx, itemIdx } = selected;
+  const srcTray = trays[srcIdx];
+  const destTray = trays[destTrayIdx];
+
+  // Remove item from source
+  const item = srcTray[layerIdx][itemIdx];
+  srcTray[layerIdx].splice(itemIdx, 1);
+  // Clean up empty layers at end
+  while (srcTray.length && srcTray[srcTray.length-1].length === 0) srcTray.pop();
+
+  // Push to dest
+  const ok = pushItemToTray(destTrayIdx, item);
+  if (!ok) {
+    // Undo
+    if (!srcTray[layerIdx]) srcTray.push([item]);
+    else srcTray[layerIdx].splice(itemIdx, 0, item);
+    logMsg('❌ Khay đích đã đầy!');
+    selected = null;
+    renderAll();
+    shakeEl(`tray-${destTrayIdx}`);
+    return;
+  }
+
+  selected = null;
+  logMsg(`Đã di chuyển ${emoji(item)} ${itemName(item)} → Khay ${destTrayIdx+1}`);
+  renderAll();
+  checkMerge(destTrayIdx);
+}
+
+// ════════════════════════════════════════
+//   MERGE
+// ════════════════════════════════════════
+function checkMerge(trayIdx) {
+  const tray = trays[trayIdx];
+  // Count items per (type, tier)
+  let all = [];
+  tray.forEach(layer => layer.forEach(it => all.push(it)));
+
+  const counts = {};
+  all.forEach(it => {
+    const k = `${it.type}:${it.tier}`;
+    counts[k] = (counts[k]||0) + 1;
+  });
+
+  for (const [k, cnt] of Object.entries(counts)) {
+    if (cnt >= 3) {
+      const [type, tierStr] = k.split(':');
+      const tier = parseInt(tierStr);
+      doMerge(trayIdx, type, tier);
+      return; // only one merge at a time
+    }
+  }
+}
+
+function doMerge(trayIdx, type, tier) {
+  const tray = trays[trayIdx];
+
+  // Remove 3 of this type+tier from tray (innermost first so outer layer items are preferred)
+  let removed = 0;
+  for (let l = 0; l < tray.length && removed < 3; l++) {
+    const layer = tray[l];
+    for (let i = layer.length-1; i >= 0 && removed < 3; i--) {
+      if (layer[i].type === type && layer[i].tier === tier) {
+        layer.splice(i, 1);
+        removed++;
+      }
+    }
+  }
+  // Clean empty layers
+  while (tray.length && tray[tray.length-1].length === 0) tray.pop();
+
+  const newTier = tier + 1;
+  const pts = TIER_PTS[Math.min(newTier-1, 2)];
+  score += pts;
+  updateScoreDisplay();
+
+  const ITEMS_d = ITEMS.find(r=>r[0]===type);
+  const mergedEmoji = tier===1 ? ITEMS_d[2] : tier===2 ? ITEMS_d[3] : ITEMS_d[3];
+  burstAt(`tray-${trayIdx}`, mergedEmoji);
+
+  if (newTier > 3) {
+    // max tier reached — item disappears, special effect
+    logMsg(`🌟 TIER MAX! Vật phẩm biến mất, kích hoạt phép thuật! +${pts} điểm`);
+    applySpecialEffect(trayIdx);
+    unlockRecipe(type);
+    renderAll();
+    return;
+  }
+
+  // Place merged item
+  pushItemToTray(trayIdx, newItem(type, newTier));
+
+  if (newTier === 3) {
+    unlockRecipe(type);
+  }
+
+  logMsg(`✨ MERGE! ${ITEMS_d[tier]} × 3 → ${ITEMS_d[newTier+1] || '💥'} Tier ${newTier}! +${pts} điểm`);
+  renderAll();
+  // chain check
+  setTimeout(() => checkMerge(trayIdx), 200);
+}
+
+// ════════════════════════════════════════
+//   SPECIAL EFFECTS (Tier3 explosion)
+// ════════════════════════════════════════
+function applySpecialEffect(trayIdx) {
+  const roll = Math.floor(Math.random() * 3);
+  if (roll === 0) {
+    // clear a random tray
+    const targets = trays.map((t,i)=>i).filter(i=>i!==trayIdx && totalItems(trays[i])>0);
+    if (targets.length) {
+      const t = targets[Math.floor(Math.random()*targets.length)];
+      trays[t] = [];
+      logMsg(`🧹 Phép xóa — Khay ${t+1} bị dọn sạch!`);
+    }
+  } else if (roll === 1) {
+    // shuffle outer layers
+    const outers = trays.map(t => outerLayer(t)).filter(Boolean);
+    const flat = outers.flatMap(l => l.splice(0));
+    flat.sort(() => Math.random()-.5);
+    trays.forEach(t => { const ol = outerLayer(t); if(ol) ol.push(...flat.splice(0,3)); });
+    logMsg('🌀 Phép hoán vị — lớp ngoài bị xáo trộn!');
+  } else {
+    score += 100;
+    updateScoreDisplay();
+    logMsg('⚡ Sét đánh — +100 điểm bonus!');
+  }
+}
+
+// ════════════════════════════════════════
+//   SPAWN
+// ════════════════════════════════════════
+document.getElementById('btn-spawn').addEventListener('click', () => {
+  if (gameOver) return;
+
+  const free = totalFreeSlots();
+  if (free < SPAWN_N) {
+    triggerGameOver();
+    return;
+  }
+
+  // Find types already on board; prefer them
+  const existing = [];
+  trays.forEach(t => t.forEach(l => l.forEach(it => { if(it.tier===1) existing.push(it.type); })));
+
+  const spawnList = [];
+  for (let i = 0; i < SPAWN_N; i++) {
+    let type;
+    if (existing.length && Math.random() < .75) {
+      type = existing[Math.floor(Math.random()*existing.length)];
+    } else {
+      type = ITEMS[Math.floor(Math.random()*ITEMS.length)][0];
+    }
+    spawnList.push(newItem(type, 1));
+  }
+
+  // Distribute into trays with free slots
+  spawnList.forEach(item => {
+    const freeTrayIdxs = trays.map((t,i)=>i).filter(i=>freeSlots(trays[i])>0);
+    if (!freeTrayIdxs.length) return;
+    const t = freeTrayIdxs[Math.floor(Math.random()*freeTrayIdxs.length)];
+    pushItemToTray(t, item);
+  });
+
+  logMsg(`🌿 Spawn: ${spawnList.map(it=>emoji(it)).join(' ')} rớt vào bàn!`);
+  renderAll();
+
+  // Check merges after spawn
+  trays.forEach((_, i) => checkMerge(i));
+});
+
+// ════════════════════════════════════════
+//   GAME OVER
+// ════════════════════════════════════════
+function triggerGameOver() {
+  gameOver = true;
+  if (score > hiScore) hiScore = score;
+  document.getElementById('gameover').classList.add('show');
+  document.getElementById('go-score').textContent = `${score} điểm`;
+  document.getElementById('hi-val').textContent = hiScore;
+}
+
+function restartGame() { initGame(); }
+document.getElementById('btn-restart').addEventListener('click', restartGame);
+
+// ════════════════════════════════════════
+//   RECIPE BOOK
+// ════════════════════════════════════════
+function unlockRecipe(type) {
+  if (unlockedRecipes.has(type)) return;
+  unlockedRecipes.add(type);
+  const d = ITEMS.find(r=>r[0]===type);
+  logMsg(`📖 Công thức mới mở khóa: ${d[3]} ${d[6]}!`);
+  renderRecipes();
+}
+
+function renderRecipes() {
+  const el = document.getElementById('recipe-list');
+  if (!unlockedRecipes.size) { el.innerHTML = '<em style="color:var(--dim)">Chưa có công thức nào…</em>'; return; }
+  el.innerHTML = [...unlockedRecipes].map(type => {
+    const d = ITEMS.find(r=>r[0]===type);
+    return `<div class="recipe-entry">
+      <span class="icon">${d[1]}→${d[2]}→${d[3]}</span>
+      <div class="info"><b>${d[4]}</b> → ${d[5]} → ${d[6]}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleRecipe() {
+  document.getElementById('recipe-panel').classList.toggle('open');
+}
+
+// ════════════════════════════════════════
+//   RENDER
+// ════════════════════════════════════════
+function emoji(item) {
+  const d = ITEMS.find(r=>r[0]===item.type);
+  return d ? [d[1],d[2],d[3]][item.tier-1] : '❓';
+}
+function itemName(item) {
+  const d = ITEMS.find(r=>r[0]===item.type);
+  return d ? [d[4],d[5],d[6]][item.tier-1] : '?';
+}
+
+function renderAll() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  trays.forEach((tray, tIdx) => {
+    const div = document.createElement('div');
+    div.className = 'tray' + (freeSlots(tray)===0 ? ' full' : '');
+    div.id = `tray-${tIdx}`;
+    div.addEventListener('click', () => clickTray(tIdx));
+
+    // Tray label
+    const lbl = document.createElement('div');
+    lbl.className = 'tray-label';
+    lbl.textContent = `Khay ${tIdx+1}`;
+    div.appendChild(lbl);
+
+    if (tray.length === 0) {
+      // empty tray hint
+      const empty = document.createElement('div');
+      empty.className = 'layer';
+      empty.style.justifyContent = 'center';
+      empty.innerHTML = '<span style="color:var(--tray-rim);font-size:.75rem">trống</span>';
+      div.appendChild(empty);
+    } else {
+      // render layers: inner first (visually top = outer)
+      // outer layer = tray[tray.length-1]
+      const outerIdx = tray.length - 1;
+
+      tray.forEach((layer, lIdx) => {
+        const row = document.createElement('div');
+        row.className = 'layer' + (lIdx < outerIdx ? ' inner-layer' : '');
+
+        layer.forEach((item, iIdx) => {
+          const chip = document.createElement('div');
+          chip.className = `item tier-${item.tier}`;
+          chip.textContent = emoji(item);
+          chip.title = `${itemName(item)} (Tier ${item.tier})`;
+
+          const isSelected = selected &&
+            selected.trayIdx===tIdx && selected.layerIdx===lIdx && selected.itemIdx===iIdx;
+          if (isSelected) chip.classList.add('selected');
+
+          chip.addEventListener('click', e => {
+            e.stopPropagation();
+            selectItem(tIdx, lIdx, iIdx);
+          });
+
+          row.appendChild(chip);
+        });
+        div.appendChild(row);
+      });
+    }
+
+    // highlight target tray when something is selected
+    if (selected && selected.trayIdx !== tIdx && freeSlots(tray) > 0) {
+      div.classList.add('selected-target');
+    }
+
+    board.appendChild(div);
+  });
+
+  // Selected banner
+  const banner = document.getElementById('selected-banner');
+  if (selected) {
+    const it = trays[selected.trayIdx][selected.layerIdx][selected.itemIdx];
+    banner.textContent = `Đang giữ: ${emoji(it)} ${itemName(it)} — tap khay để di chuyển`;
+    banner.className = 'has-item';
+  } else {
+    banner.textContent = '— chưa chọn —';
+    banner.className = '';
+  }
+
+  updateScoreDisplay();
+}
+
+function updateScoreDisplay() {
+  document.getElementById('score-val').textContent = score;
+  document.getElementById('hi-val').textContent = hiScore;
+}
+
+// ════════════════════════════════════════
+//   EFFECTS
+// ════════════════════════════════════════
+function burstAt(elId, em) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const rect = el.getBoundingClientRect();
+  const b = document.createElement('div');
+  b.className = 'burst';
+  b.textContent = em;
+  b.style.left = (rect.left + rect.width/2 - 20) + 'px';
+  b.style.top  = (rect.top  + rect.height/2 - 20) + 'px';
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 700);
+}
+
+function shakeEl(elId) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  el.style.animation = 'none';
+  el.style.transition = 'none';
+  el.style.transform = 'translateX(-6px)';
+  setTimeout(()=>{el.style.transform='translateX(6px)';},80);
+  setTimeout(()=>{el.style.transform='translateX(-4px)';},160);
+  setTimeout(()=>{el.style.transform='translateX(0)';},240);
+}
+
+function logMsg(msg) {
+  const el = document.getElementById('log');
+  el.innerHTML = `<span class="entry">${msg}</span>`;
+}
+
+// ════════════════════════════════════════
+//   START
+// ════════════════════════════════════════
+initGame();
+</script>
+</body>
+</html>
